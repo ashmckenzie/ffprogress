@@ -2,14 +2,14 @@ SOURCEDIR="."
 SOURCES := $(shell find $(SOURCEDIR) -name '*.go')
 
 BINARY=ffprogress
-BINARY_RELEASE=bin/ffprogress_${VERSION}
+BINARY_RELEASE=bin/${BINARY}_${VERSION}
 
 VERSION=$(shell cat VERSION)
 
 .DEFAULT_GOAL: $(BINARY)
 
 $(BINARY): $(SOURCES)
-	go build -o ${BINARY}
+	go build -o bin/${BINARY}
 
 static_linux: bin_dir
 	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ${BINARY_RELEASE}_linux_amd64

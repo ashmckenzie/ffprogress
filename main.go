@@ -78,7 +78,7 @@ func produceSummary() {
     }
   }
 
-  fmt.Printf("\rElapsed %s, ETA 00:00:00, Progress 100%%", elapsedTime)
+  fmt.Printf("\033[2K\rElapsed %s, ETA 00:00:00, Progress 100%%\n", elapsedTime)
 }
 
 func main() {
