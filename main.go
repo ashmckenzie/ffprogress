@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -31,10 +32,16 @@ func probeFile(file string) int64 {
 	return val
 }
 
-func convert(in_file string, args string, totalFrames int64) {
+func convert(in_file string, args string, totalFrames int64) error {
 	var errb bytes.Buffer
 
 	out_file := fmt.Sprintf("output/%s", in_file)
+
+	if _, err := os.Stat(out_file); errors.Is(err, os.ErrNotExist) {
+		msg := fmt.Sprintf("%s already exists", out_file)
+		panic(msg)
+	}
+
 	if len(args) > 0 {
 		args = fmt.Sprintf(" %s", args)
 	}
@@ -99,7 +106,7 @@ func convert(in_file string, args string, totalFrames int64) {
 		fmt.Println("err:", errb.String())
 	}
 
-	cmd.Wait()
+	return cmd.Wait()
 }
 
 func main() {
@@ -124,10 +131,13 @@ func main() {
 		file := c.String("file")
 		args := c.String("ffmpeg-args")
 
-		convert(file, args, probeFile(file))
-
-		return nil
+		return convert(file, args, probeFile(file))
 	}
 
-	app.Run(os.Args)
+	err := app.Run(os.Args)
+	if err != nil {
+		os.Exit(1)
+	} else {
+		os.Exit(0)
+	}
 }
