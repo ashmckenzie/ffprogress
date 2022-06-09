@@ -35,7 +35,11 @@ func convert(in_file string, args string, totalFrames int64) {
 	var errb bytes.Buffer
 
 	out_file := fmt.Sprintf("output/%s", in_file)
-	finalArgs := fmt.Sprintf("-i %s %s -progress - -nostats -v error %s", in_file, args, out_file)
+	if len(args) > 0 {
+		args = fmt.Sprintf(" %s", args)
+	}
+
+	finalArgs := fmt.Sprintf("-i %s%s -progress - -nostats -v error %s", in_file, args, out_file)
 
 	cmd := exec.Command("ffmpeg", strings.Split(finalArgs, " ")...)
 
@@ -55,7 +59,11 @@ func convert(in_file string, args string, totalFrames int64) {
 	var currentFrame int64 = 0
 	var previousFrame int64 = 0
 
-	bar := progressbar.Default(totalFrames, in_file)
+	bar := progressbar.NewOptions64(totalFrames,
+		progressbar.OptionSetDescription(in_file),
+		progressbar.OptionSetWriter(os.Stderr),
+		progressbar.OptionFullWidth(),
+	)
 
 	for scanner.Scan() {
 		line := scanner.Text()
