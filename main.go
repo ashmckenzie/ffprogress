@@ -35,7 +35,7 @@ func convert(in_file string, args string, totalFrames int64) {
 	var errb bytes.Buffer
 
 	out_file := fmt.Sprintf("output/%s", in_file)
-	finalArgs := fmt.Sprintf("-y -i %s %s -progress - -nostats -v error %s", in_file, args, out_file)
+	finalArgs := fmt.Sprintf("-i %s %s -progress - -nostats -v error %s", in_file, args, out_file)
 
 	cmd := exec.Command("ffmpeg", strings.Split(finalArgs, " ")...)
 
