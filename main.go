@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -32,14 +31,15 @@ func probeFile(file string) int64 {
 	return val
 }
 
-func convert(in_file string, args string, totalFrames int66) error {
+func convert(in_file string, args string, totalFrames int64) error {
 	var errb bytes.Buffer
 
 	out_file := fmt.Sprintf("output/%s", in_file)
 
-	if _, err := os.Stat(out_file); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(out_file); err == nil {
 		msg := fmt.Sprintf("%s already exists", out_file)
-		panic(msg)
+		fmt.Println(msg)
+		return nil
 	}
 
 	if len(args) > 0 {
