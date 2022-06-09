@@ -1,96 +1,117 @@
 package main
 
 import (
-  "bufio"
-  "bytes"
-  "fmt"
-  "os"
-  "regexp"
-  "strconv"
-  "time"
+	"bufio"
+	"bytes"
+	"fmt"
+	"os"
+	"os/exec"
+	"regexp"
+	"strconv"
+	"strings"
 
-  // "github.com/davecgh/go-spew/spew"
-  "github.com/urfave/cli"
+	"github.com/schollz/progressbar/v3"
+	"github.com/urfave/cli"
 )
 
-func secondsFromString(re *regexp.Regexp, str string) (int) {
-  h, _ := strconv.Atoi(re.FindStringSubmatch(str)[1])
-  hours := ((h * 60) * 60)
-  m, _ := strconv.Atoi(re.FindStringSubmatch(str)[2])
-  mins := m * 60
-  secs, _ := strconv.Atoi(re.FindStringSubmatch(str)[3])
+func probeFile(file string) int64 {
+	command := fmt.Sprintf("ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 %s", file)
+	args := strings.Fields(command)
 
-  return (hours + mins + secs)
+	output, err := exec.Command(args[0], args[1:]...).Output()
+	if err != nil {
+		panic(err)
+	}
+
+	val, err := strconv.ParseInt(strings.TrimSuffix(string(output), "\n"), 10, 64)
+	if err != nil {
+		panic(err)
+	}
+
+	return val
 }
 
-func niceTimeFromSeconds(seconds int) (string) {
-  h := seconds / 3600
-  m := (seconds % 3600) / 60
-  s := seconds % 60
+func convert(in_file string, args string, totalFrames int64) {
+	var errb bytes.Buffer
 
-  return fmt.Sprintf("%02d:%02d:%02d", h, m, s)
-}
+	out_file := fmt.Sprintf("output/%s", in_file)
+	finalArgs := fmt.Sprintf("-y -i %s %s -progress - -nostats -v error %s", in_file, args, out_file)
 
-func produceSummary() {
-  var line bytes.Buffer
-  totalSeconds := 0
-  elapsedSeconds := 0
-  currentSeconds := 0
-  elapsedTime := "00:00:00"
-  timeToGo := "00:00:00"
-  percentageComplete := "0.00"
-  commonRegex := "([0-9]{2}):([0-9]{2}):([0-9]{2})"
-  durationRegex, _ := regexp.Compile(fmt.Sprintf("Duration: %s", commonRegex))
-  timeRegex, _ := regexp.Compile(fmt.Sprintf("time=%s", commonRegex))
+	cmd := exec.Command("ffmpeg", strings.Split(finalArgs, " ")...)
 
-  go func() {
-    for {
-      if elapsedSeconds < totalSeconds { elapsedSeconds += 1 }
+	cmd.Stderr = &errb
+	output, err := cmd.StdoutPipe()
+	if err != nil {
+		panic(err)
+	}
 
-      if totalSeconds > 0 {
-        elapsedTime = niceTimeFromSeconds(elapsedSeconds)
-        fmt.Printf("\rElapsed %s, ETA %s, Progress %s%%", elapsedTime, timeToGo, percentageComplete)
-      } else {
-        fmt.Printf("\r-- waiting for input --")
-      }
-      time.Sleep(1000 * time.Millisecond)
-    }
-  }()
+	cmd.Start()
 
-  scanner := bufio.NewScanner(os.Stdin)
-  scanner.Split(bufio.ScanRunes)
+	scanner := bufio.NewScanner(output)
+	scanner.Split(bufio.ScanWords)
 
-  for scanner.Scan() {
-    line.WriteString(scanner.Text())
+	frameRe := regexp.MustCompile(`frame=(.+)`)
 
-    if totalSeconds == 0 {
-      if durationRegex.MatchString(line.String()) {
-        totalSeconds = secondsFromString(durationRegex, line.String())
-        line.Reset()
-      }
-    } else {
-      if timeRegex.MatchString(line.String()) {
-        currentSeconds = secondsFromString(timeRegex, line.String())
-        timeToGo = niceTimeFromSeconds(totalSeconds - currentSeconds)
-        percentageComplete = fmt.Sprintf("%.2f", (float32(currentSeconds) / float32(totalSeconds) * 100))
-        line.Reset()
-      }
-    }
-  }
+	var currentFrame int64 = 0
+	var previousFrame int64 = 0
 
-  fmt.Printf("\033[2K\rElapsed %s, ETA 00:00:00, Progress 100%%\n", elapsedTime)
+	bar := progressbar.Default(totalFrames)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		match := frameRe.FindStringSubmatch(line)
+		if match == nil {
+			continue
+		}
+
+		currentFrame, err = strconv.ParseInt(match[1], 10, 64)
+		if err != nil {
+			panic(err)
+		}
+
+		if currentFrame > totalFrames {
+			bar.Finish()
+		} else {
+			bar.Add(int(currentFrame - previousFrame))
+		}
+
+		previousFrame = currentFrame
+	}
+
+	if len(errb.String()) > 0 {
+		fmt.Println("err:", errb.String())
+	}
+
+	cmd.Wait()
 }
 
 func main() {
-  app := cli.NewApp()
-  app.Name = "ffprogress"
-  app.Usage = "Elapsed time, ETA and progress percentage based on your ffmpeg call."
-  app.Version = "0.1.0"
+	app := cli.NewApp()
+	app.Name = "ffprogress"
+	app.Usage = "Elapsed time, ETA and progress percentage based on your ffmpeg call."
+	app.Version = "0.1.0"
 
-  app.Action = func(c *cli.Context) error {
-    produceSummary()
-    return nil
-  }
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:     "file",
+			Usage:    "file to process",
+			Required: true,
+		},
+		cli.StringFlag{
+			Name:  "ffmpeg-args",
+			Usage: "arguments to pass onto ffmpeg",
+		},
+	}
 
-  app.Run(os.Args)
+	app.Action = func(c *cli.Context) error {
+		file := c.String("file")
+		args := c.String("ffmpeg-args")
+
+		convert(file, args, probeFile(file))
+
+		return nil
+	}
+
+	app.Run(os.Args)
 }
