@@ -27,4 +27,4 @@ run:
 
 .PHONY: clean
 clean:
-	rm -f ${BINARY} ${BINARY}_*
+	rm -f bin/${BINARY} bin/${BINARY}_*
