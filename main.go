@@ -55,7 +55,7 @@ func convert(in_file string, args string, totalFrames int64) {
 	var currentFrame int64 = 0
 	var previousFrame int64 = 0
 
-	bar := progressbar.Default(totalFrames)
+	bar := progressbar.Default(totalFrames, in_file)
 
 	for scanner.Scan() {
 		line := scanner.Text()
