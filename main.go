@@ -62,8 +62,16 @@ func convert(in_file string, args string, totalFrames int64) {
 	bar := progressbar.NewOptions64(totalFrames,
 		progressbar.OptionSetDescription(in_file),
 		progressbar.OptionSetWriter(os.Stderr),
+		// progressbar.OptionSetWidth(10),
+		// progressbar.OptionThrottle(65*time.Millisecond),
+		progressbar.OptionOnCompletion(func() {
+			fmt.Printf("\n")
+		}),
+		// progressbar.OptionSpinnerType(14),
 		progressbar.OptionFullWidth(),
 	)
+
+	bar.RenderBlank()
 
 	for scanner.Scan() {
 		line := scanner.Text()
