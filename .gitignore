@@ -1,3 +1,4 @@
-ffprogress
-bin
+*.swp
 .vscode
+bin
+ffprogress
