@@ -66,11 +66,13 @@ func convert(inFile string, args string, totalFrames int64) error {
 	var currentFrame int64 = 0
 	var previousFrame int64 = 0
 
+	desc := fmt.Sprintf("%-50s", inFile)
+
 	bar := progressbar.NewOptions64(totalFrames,
 		progressbar.OptionSetRenderBlankState(true),
 		progressbar.OptionSetPredictTime(true),
 		progressbar.OptionShowCount(),
-		progressbar.OptionSetDescription(inFile),
+		progressbar.OptionSetDescription(desc),
 		progressbar.OptionSetWriter(os.Stderr),
 		progressbar.OptionOnCompletion(func() {
 			fmt.Printf("\n")
