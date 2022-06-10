@@ -31,10 +31,10 @@ func probeFile(file string) int64 {
 	return val
 }
 
-func convert(in_file string, args string, totalFrames int64) error {
+func convert(inFile string, args string, totalFrames int64) error {
 	var errb bytes.Buffer
 
-	out_file := fmt.Sprintf("output/%s", in_file)
+	out_file := fmt.Sprintf("output/%s", inFile)
 
 	if _, err := os.Stat(out_file); err == nil {
 		msg := fmt.Sprintf("%s already exists", out_file)
@@ -46,7 +46,7 @@ func convert(in_file string, args string, totalFrames int64) error {
 		args = fmt.Sprintf(" %s", args)
 	}
 
-	finalArgs := fmt.Sprintf("-i %s%s -progress - -nostats -v error %s", in_file, args, out_file)
+	finalArgs := fmt.Sprintf("-i %s%s -progress - -nostats -v error %s", inFile, args, out_file)
 
 	cmd := exec.Command("ffmpeg", strings.Split(finalArgs, " ")...)
 
@@ -70,7 +70,7 @@ func convert(in_file string, args string, totalFrames int64) error {
 		progressbar.OptionSetRenderBlankState(true),
 		progressbar.OptionSetPredictTime(true),
 		progressbar.OptionShowCount(),
-		progressbar.OptionSetDescription(in_file),
+		progressbar.OptionSetDescription(inFile),
 		progressbar.OptionSetWriter(os.Stderr),
 		progressbar.OptionOnCompletion(func() {
 			fmt.Printf("\n")
