@@ -71,7 +71,7 @@ func convert(inFile string, args string, totalFrames int64) error {
 	bar := progressbar.NewOptions64(totalFrames,
 		progressbar.OptionSetRenderBlankState(true),
 		progressbar.OptionSetPredictTime(true),
-		progressbar.OptionShowCount(),
+		//progressbar.OptionShowCount(),
 		progressbar.OptionSetDescription(desc),
 		progressbar.OptionSetWriter(os.Stderr),
 		progressbar.OptionOnCompletion(func() {
