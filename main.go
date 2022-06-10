@@ -34,11 +34,17 @@ func probeFile(file string) int64 {
 func convert(inFile string, args string, totalFrames int64) error {
 	var errb bytes.Buffer
 
-	out_file := fmt.Sprintf("output/%s", inFile)
+	defaultDir := "working"
 
-	if _, err := os.Stat(out_file); err == nil {
-		msg := fmt.Sprintf("%s already exists", out_file)
-		fmt.Println(msg)
+	if _, err := os.Stat(defaultDir); os.IsNotExist(err) {
+		fmt.Printf("Directory %s does not exist\n", defaultDir)
+		return nil
+	}
+
+	outFile := fmt.Sprintf("%s/%s", defaultDir, inFile)
+
+	if _, err := os.Stat(outFile); err == nil {
+		fmt.Printf("File %s already exists\n", outFile)
 		return nil
 	}
 
@@ -46,7 +52,7 @@ func convert(inFile string, args string, totalFrames int64) error {
 		args = fmt.Sprintf(" %s", args)
 	}
 
-	finalArgs := fmt.Sprintf("-i %s%s -progress - -nostats -v error %s", inFile, args, out_file)
+	finalArgs := fmt.Sprintf("-i %s%s -progress - -nostats -v error %s", inFile, args, outFile)
 
 	cmd := exec.Command("ffmpeg", strings.Split(finalArgs, " ")...)
 
