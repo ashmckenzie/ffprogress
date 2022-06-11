@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,8 +15,8 @@ import (
 	"github.com/urfave/cli"
 )
 
-func probeFile(file string) int64 {
-	command := fmt.Sprintf("ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 %s", file)
+func probeFile(inFile string) int64 {
+	command := fmt.Sprintf("ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 %s", inFile)
 	args := strings.Fields(command)
 
 	output, err := exec.Command(args[0], args[1:]...).Output()
@@ -31,17 +32,20 @@ func probeFile(file string) int64 {
 	return val
 }
 
-func convert(inFile string, args string, totalFrames int64) error {
+func convert(inFile string, outFile string, args string, totalFrames int64) error {
 	var errb bytes.Buffer
 
-	defaultDir := "working"
-
-	if _, err := os.Stat(defaultDir); os.IsNotExist(err) {
-		fmt.Printf("Directory %s does not exist\n", defaultDir)
+	if _, err := os.Stat(inFile); err != nil {
+		fmt.Printf("File %s doesn't exists\n", inFile)
 		return nil
 	}
 
-	outFile := fmt.Sprintf("%s/%s", defaultDir, inFile)
+	outDir := filepath.Dir(outFile)
+
+	if _, err := os.Stat(outDir); os.IsNotExist(err) {
+		fmt.Printf("Directory %s does not exist\n", outDir)
+		return nil
+	}
 
 	if _, err := os.Stat(outFile); err == nil {
 		fmt.Printf("File %s already exists\n", outFile)
@@ -72,13 +76,14 @@ func convert(inFile string, args string, totalFrames int64) error {
 	var currentFrame int64 = 0
 	var previousFrame int64 = 0
 
-	desc := fmt.Sprintf("%-50s", inFile)
+	//desc := fmt.Sprintf("%-50s", inFile)
+	fmt.Println(inFile)
 
 	bar := progressbar.NewOptions64(totalFrames,
 		progressbar.OptionSetRenderBlankState(true),
 		progressbar.OptionSetPredictTime(true),
 		progressbar.OptionShowCount(),
-		progressbar.OptionSetDescription(desc),
+		//progressbar.OptionSetDescription(desc),
 		progressbar.OptionSetWriter(os.Stderr),
 		progressbar.OptionOnCompletion(func() {
 			fmt.Printf("\n")
@@ -125,8 +130,13 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:     "file",
-			Usage:    "file to process",
+			Name:     "i",
+			Usage:    "input file",
+			Required: true,
+		},
+		cli.StringFlag{
+			Name:     "o",
+			Usage:    "output file",
 			Required: true,
 		},
 		cli.StringFlag{
@@ -136,10 +146,11 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
-		file := c.String("file")
+		inFile := c.String("i")
+		outFile := c.String("o")
 		args := c.String("ffmpeg-args")
 
-		return convert(file, args, probeFile(file))
+		return convert(inFile, outFile, args, probeFile(inFile))
 	}
 
 	err := app.Run(os.Args)

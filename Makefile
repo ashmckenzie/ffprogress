@@ -8,13 +8,16 @@ VERSION=$(shell cat VERSION)
 
 .DEFAULT_GOAL: $(BINARY)
 
-$(BINARY): $(SOURCES)
+$(BINARY): $(SOURCES) format
 	go build -o bin/${BINARY}
 
-static_linux: bin_dir
+format:
+	@go fmt
+
+static_linux: bin_dir format
 	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ${BINARY_RELEASE}_linux_amd64
 
-static_darwin: bin_dir
+static_darwin: bin_dir format
 	CGO_ENABLED=0 GOOS=darwin go build -a -installsuffix cgo -o ${BINARY_RELEASE}_darwin_amd64
 
 .PHONY: bin_dir
